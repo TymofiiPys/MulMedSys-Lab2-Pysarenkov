@@ -42,5 +42,30 @@ public class MainWindow {
                 pathTextField.setText(midiFileName);
             }
         });
+
+        launchButton.addActionListener(e -> {
+            if(!pathTextField.getText().isBlank()) {
+                if(!pathTextField.getText().endsWith(".mid"))
+                {
+                    JOptionPane.showMessageDialog(frame, "Файл має містити розширення .mid!", "Помилка", JOptionPane.ERROR_MESSAGE);
+                }
+                midiFileName = pathTextField.getText();
+            }
+            else {
+                JOptionPane.showMessageDialog(frame, "Введіть назву файлу", "Помилка", JOptionPane.ERROR_MESSAGE);
+            }
+            if(bpmTextField.getText().isBlank())
+            {
+               JOptionPane.showMessageDialog(frame, "Не введено BPM. Використовується BPM за замовчуванням (120)","Не введено BPM", JOptionPane.INFORMATION_MESSAGE);
+               bpmTextField.setText("120");
+            }
+            try {
+                double bpm = Double.parseDouble(bpmTextField.getText());
+                if(bpm <= 0) throw new NumberFormatException();
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "BPM має бути додатним дійсним числом", "Помилка", JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 }
