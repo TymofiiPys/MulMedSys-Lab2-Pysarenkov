@@ -1,16 +1,22 @@
 package org.midianim.util;
 
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.midianim.GUI.MainWindow;
+import org.midianim.GUI.MidiVisualizer;
 
 import javax.sound.midi.*;
 import java.io.File;
+import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import java.io.IOException;
 
 @RequiredArgsConstructor
 public class MidiReader {
     private final String filepath;
-
+    private final MidiVisualizer mv;
+    @Setter
+    private double bpm;
     public static FileFilter getMidiFileFilter() {
         return new FileFilter() {
             @Override
@@ -25,7 +31,19 @@ public class MidiReader {
         };
     }
 
-    public void read() {
+    public void start(String filepath, double bpm) {
+        SwingWorker<Void, Void>  worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                read(filepath, bpm);
+                return null;
+            }
+        };
+
+        worker.execute();
+    }
+
+    private void read(String filepath, double bpm) {
         File midiFile = new File(filepath);
         if (!midiFile.exists()) {
             System.out.println("File does not exist.");
@@ -39,46 +57,32 @@ public class MidiReader {
             sequencer.setSequence(sequence);
 
             sequencer.open();
-            sequencer.setTempoInBPM(113);
-            sequencer.start();
-            while (sequencer.isRunning()) {
-                Thread.sleep(1000);
+
+            long tempoMSec = Math.round(BPMConverter.convertBPMToMilliSec(bpm));
+
+            for (Track track : sequence.getTracks()) {
+                for (int i = 0; i < track.size(); i++) {
+                    MidiEvent event = track.get(i);
+                    MidiMessage message = event.getMessage();
+
+                    if (message instanceof ShortMessage) {
+                        ShortMessage sm = (ShortMessage) message;
+
+                        if (sm.getCommand() == ShortMessage.NOTE_ON) {
+                            int note = sm.getData1();
+                            int velocity = sm.getData2();
+
+                            mv.onNoteRead(note, velocity);
+
+                            Thread.sleep(tempoMSec);
+                        }
+                    }
+                }
             }
+
             sequencer.close();
-
-            //            for (Track track : sequence.getTracks()) {
-//                System.out.println("Track length: " + track.size());
-//
-//                // Iterate through the events in each track
-//                for (int i = 0; i < track.size(); i++) {
-//                    MidiEvent event = track.get(i);
-//                    MidiMessage message = event.getMessage();
-//                    // Only log note events (ShortMessage)
-//                    if (message instanceof ShortMessage) {
-//                        ShortMessage sm = (ShortMessage) message;
-//                        int command = sm.getCommand();
-//
-//                        // Check if the command is NOTE_ON or NOTE_OFF
-//                        if (command == ShortMessage.NOTE_ON || command == ShortMessage.NOTE_OFF) {
-//                            int key = sm.getData1(); // The note (key)
-//                            int velocity = sm.getData2(); // The velocity
-//
-//                            // Log the note and velocity
-//                            System.out.println("Note: " + key + " Velocity: " + velocity +
-//                                    " Time: " + event.getTick() +
-//                                    (command == ShortMessage.NOTE_ON ? " (Note On)" : " (Note Off)"));
-//                        }
-//                    }
-//                }
-//            }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) {
-        MidiReader m = new MidiReader("C:\\Users\\Tymofii\\Documents\\Image-Line\\FL Studio\\Presets\\Scores\\ets_guitar_1.mid");
-        m.read();
     }
 }
