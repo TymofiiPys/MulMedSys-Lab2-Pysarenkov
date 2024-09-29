@@ -18,6 +18,8 @@ public class MainWindow {
     private JLabel pathLabel;
     private JTextField pathTextField;
     private JButton chooseFileButton;
+    @Getter
+    private JPanel drawPanel;
     private final JFrame frame;
     private String midiFileName;
     private boolean openFile(){
@@ -62,6 +64,11 @@ public class MainWindow {
             try {
                 double bpm = Double.parseDouble(bpmTextField.getText());
                 if(bpm <= 0) throw new NumberFormatException();
+
+                MidiVisualizer mv = new MidiVisualizer(this);
+
+                MidiReader reader = new MidiReader(mv);
+                reader.start(midiFileName, bpm);
 
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(frame, "BPM має бути додатним дійсним числом", "Помилка", JOptionPane.ERROR_MESSAGE);

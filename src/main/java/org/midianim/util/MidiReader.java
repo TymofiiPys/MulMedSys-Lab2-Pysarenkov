@@ -13,9 +13,8 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 public class MidiReader {
-    private final String filepath;
+    private String filepath;
     private final MidiVisualizer mv;
-    @Setter
     private double bpm;
     public static FileFilter getMidiFileFilter() {
         return new FileFilter() {
