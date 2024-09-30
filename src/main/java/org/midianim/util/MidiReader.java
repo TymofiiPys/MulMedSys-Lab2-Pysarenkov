@@ -1,21 +1,16 @@
 package org.midianim.util;
 
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.midianim.GUI.MainWindow;
 import org.midianim.GUI.MidiVisualizer;
 
 import javax.sound.midi.*;
 import java.io.File;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
-import java.io.IOException;
 
 @RequiredArgsConstructor
 public class MidiReader {
-    private String filepath;
     private final MidiVisualizer mv;
-    private double bpm;
 
     public static FileFilter getMidiFileFilter() {
         return new FileFilter() {
@@ -32,9 +27,9 @@ public class MidiReader {
     }
 
     public void start(String filepath, double bpm) {
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected Void doInBackground() {
                 read(filepath, bpm);
                 return null;
             }
@@ -59,9 +54,6 @@ public class MidiReader {
 
             double tickDurMicroSec = BPMConverter.computeTickDurationMicroSec(bpm, ppq);
 
-            long tempoMSec = Math.round(BPMConverter.convertBPMToMilliSec(bpm));
-
-            // TODO: synth playback
             Thread t = new Thread(() -> {
                 try {
                     Synthesizer synthesizer = MidiSystem.getSynthesizer();
@@ -98,9 +90,7 @@ public class MidiReader {
                         Thread.sleep(deltaTime);
                     previousTick = tick;
 
-                    if (message instanceof ShortMessage) {
-                        ShortMessage sm = (ShortMessage) message;
-
+                    if (message instanceof ShortMessage sm) {
                         if (sm.getCommand() == ShortMessage.NOTE_ON) {
                             int note = sm.getData1();
                             int velocity = sm.getData2();
