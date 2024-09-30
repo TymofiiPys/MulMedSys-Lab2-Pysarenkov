@@ -59,17 +59,29 @@ public class MidiReader {
 
             double tickDurMicroSec = BPMConverter.computeTickDurationMicroSec(bpm, ppq);
 
-            Sequencer sequencer = MidiSystem.getSequencer();
-            sequencer.setSequence(sequence);
-
-            sequencer.open();
-
             long tempoMSec = Math.round(BPMConverter.convertBPMToMilliSec(bpm));
 
             // TODO: synth playback
             Thread t = new Thread(() -> {
+                try {
+                    Synthesizer synthesizer = MidiSystem.getSynthesizer();
+                    synthesizer.open();
 
-            });
+                    Sequencer sequencer = MidiSystem.getSequencer();
+                    sequencer.setSequence(sequence);
+                    sequencer.getTransmitter().setReceiver(synthesizer.getReceiver());
+
+                    sequencer.open();
+                    sequencer.start();
+                    sequencer.setTempoInBPM((float) bpm);
+
+                    while (sequencer.isRunning());
+                    sequencer.close();
+                    synthesizer.close();
+                } catch (MidiUnavailableException | InvalidMidiDataException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }, "synthThread");
 
             t.start();
             long previousTick = 0;
@@ -82,7 +94,8 @@ public class MidiReader {
 
                     long deltaTime = BPMConverter.convertTickToMilliseconds(tick - previousTick, tickDurMicroSec);
 
-                    Thread.sleep(deltaTime);
+                    if(deltaTime > 0)
+                        Thread.sleep(deltaTime);
                     previousTick = tick;
 
                     if (message instanceof ShortMessage) {
@@ -93,8 +106,6 @@ public class MidiReader {
                             int velocity = sm.getData2();
 
                             mv.onNoteRead(note, velocity);
-
-//                            Thread.sleep(tempoMSec);
                         }
                     }
                 }
@@ -102,7 +113,6 @@ public class MidiReader {
 
             t.join();
 
-            sequencer.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
