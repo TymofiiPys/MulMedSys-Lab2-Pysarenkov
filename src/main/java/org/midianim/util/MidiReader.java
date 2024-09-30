@@ -16,6 +16,7 @@ public class MidiReader {
     private String filepath;
     private final MidiVisualizer mv;
     private double bpm;
+
     public static FileFilter getMidiFileFilter() {
         return new FileFilter() {
             @Override
@@ -31,7 +32,7 @@ public class MidiReader {
     }
 
     public void start(String filepath, double bpm) {
-        SwingWorker<Void, Void>  worker = new SwingWorker<Void, Void>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
                 read(filepath, bpm);
@@ -44,6 +45,7 @@ public class MidiReader {
 
     private void read(String filepath, double bpm) {
         File midiFile = new File(filepath);
+
         if (!midiFile.exists()) {
             System.out.println("File does not exist.");
             return;
@@ -52,6 +54,11 @@ public class MidiReader {
         try {
             Sequence sequence = MidiSystem.getSequence(midiFile);
 
+
+            int ppq = sequence.getResolution();
+
+            double tickDurMicroSec = BPMConverter.computeTickDurationMicroSec(bpm, ppq);
+
             Sequencer sequencer = MidiSystem.getSequencer();
             sequencer.setSequence(sequence);
 
@@ -59,10 +66,24 @@ public class MidiReader {
 
             long tempoMSec = Math.round(BPMConverter.convertBPMToMilliSec(bpm));
 
+            // TODO: synth playback
+            Thread t = new Thread(() -> {
+
+            });
+
+            t.start();
+            long previousTick = 0;
+
             for (Track track : sequence.getTracks()) {
                 for (int i = 0; i < track.size(); i++) {
                     MidiEvent event = track.get(i);
                     MidiMessage message = event.getMessage();
+                    long tick = event.getTick();
+
+                    long deltaTime = BPMConverter.convertTickToMilliseconds(tick - previousTick, tickDurMicroSec);
+
+                    Thread.sleep(deltaTime);
+                    previousTick = tick;
 
                     if (message instanceof ShortMessage) {
                         ShortMessage sm = (ShortMessage) message;
@@ -73,15 +94,19 @@ public class MidiReader {
 
                             mv.onNoteRead(note, velocity);
 
-                            Thread.sleep(tempoMSec);
+//                            Thread.sleep(tempoMSec);
                         }
                     }
                 }
             }
+
+            t.join();
 
             sequencer.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+
 }
