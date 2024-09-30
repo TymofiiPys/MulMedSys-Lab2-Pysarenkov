@@ -20,6 +20,8 @@ public class MainWindow {
     private JButton chooseFileButton;
     @Getter
     private JPanel drawPanel;
+    @Getter
+    private JLabel notePropLabel;
     private final JFrame frame;
     private String midiFileName;
     private boolean openFile(){
